@@ -94,7 +94,7 @@ describe("context-menu", () => {
     };
 
     it("is not a login cipher", async () => {
-      await sut.loadOptions("TEST_TITLE", "1", {
+      await sut.loadOptions("TEST_TITLE", "1", "", {
         ...createCipher(),
         type: CipherType.SecureNote,
       } as any);
@@ -106,6 +106,7 @@ describe("context-menu", () => {
       await sut.loadOptions(
         "TEST_TITLE",
         "1",
+        "",
         createCipher({
           username: "",
           totp: "",
@@ -119,7 +120,7 @@ describe("context-menu", () => {
     it("create entry for each cipher piece", async () => {
       stateService.getCanAccessPremium.mockResolvedValue(true);
 
-      await sut.loadOptions("TEST_TITLE", "1", createCipher());
+      await sut.loadOptions("TEST_TITLE", "1", "", createCipher());
 
       // One for autofill, copy username, copy password, and copy totp code
       expect(createSpy).toHaveBeenCalledTimes(4);
@@ -128,7 +129,7 @@ describe("context-menu", () => {
     it("creates noop item for no cipher", async () => {
       stateService.getCanAccessPremium.mockResolvedValue(true);
 
-      await sut.loadOptions("TEST_TITLE", "NOOP");
+      await sut.loadOptions("TEST_TITLE", "NOOP", "");
 
       expect(createSpy).toHaveBeenCalledTimes(4);
     });

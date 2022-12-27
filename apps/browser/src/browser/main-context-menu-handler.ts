@@ -185,7 +185,7 @@ export class MainContextMenuHandler {
     });
   }
 
-  async loadOptions(title: string, id: string, cipher?: CipherView | undefined) {
+  async loadOptions(title: string, id: string, url: string, cipher?: CipherView | undefined) {
     if (cipher != null && cipher.type !== CipherType.Login) {
       return;
     }
@@ -194,15 +194,13 @@ export class MainContextMenuHandler {
 
     const createChildItem = async (parent: string) => {
       const menuItemId = `${parent}_${id}`;
-      await MainContextMenuHandler.remove(menuItemId).catch((err) => {
-        // Intentionally swallow error, as it's likely the menu item doesn't exist
-      });
       return await this.create({
         type: "normal",
         id: menuItemId,
         parentId: parent,
         title: sanitizedTitle,
         contexts: ["all"],
+        documentUrlPatterns: [url],
       });
     };
 
@@ -232,12 +230,13 @@ export class MainContextMenuHandler {
       const authed = await this.stateService.getIsAuthenticated();
       await this.loadOptions(
         this.i18nService.t(authed ? "unlockVaultMenu" : "loginToVaultMenu"),
-        NOOP_COMMAND_SUFFIX
+        NOOP_COMMAND_SUFFIX,
+        "<all_urls>"
       );
     }
   }
 
-  async noLogins() {
-    await this.loadOptions(this.i18nService.t("noMatchingLogins"), NOOP_COMMAND_SUFFIX);
+  async noLogins(url: string) {
+    await this.loadOptions(this.i18nService.t("noMatchingLogins"), NOOP_COMMAND_SUFFIX, url);
   }
 }
