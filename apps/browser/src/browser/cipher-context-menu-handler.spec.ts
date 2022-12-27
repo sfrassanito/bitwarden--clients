@@ -101,6 +101,7 @@ describe("CipherContextMenuHandler", () => {
       expect(mainContextMenuHandler.loadOptions).toHaveBeenCalledWith(
         "Test Cipher (Test Username)",
         "5",
+        "https://test.com",
         realCipher
       );
     });
