@@ -83,7 +83,6 @@ import { CipherContextMenuHandler } from "../browser/cipher-context-menu-handler
 import { ContextMenuClickedHandler } from "../browser/context-menu-clicked-handler";
 import { MainContextMenuHandler } from "../browser/main-context-menu-handler";
 import { SafariApp } from "../browser/safariApp";
-import { GeneratePasswordToClipboardCommand } from "../clipboard";
 import { AutofillTabCommand } from "../commands/autofill-tab-command";
 import { flagEnabled } from "../flags";
 import { UpdateBadge } from "../listeners/update-badge";
@@ -545,10 +544,15 @@ export default class MainBackground {
     if (!this.popupOnlyContext) {
       const contextMenuClickedHandler = new ContextMenuClickedHandler(
         (options) => this.platformUtilsService.copyToClipboard(options.text, { window: self }),
+        async (_tab) => {
+          const options = (await this.passwordGenerationService.getOptions())?.[0] ?? {};
+          const password = await this.passwordGenerationService.generatePassword(options);
+          this.platformUtilsService.copyToClipboard(password, { window: window });
+          this.passwordGenerationService.addHistory(password);
+        },
         this.authService,
         this.cipherService,
         new AutofillTabCommand(this.autofillService),
-        new GeneratePasswordToClipboardCommand(this.passwordGenerationService, this.stateService),
         this.totpService,
         this.eventCollectionService
       );

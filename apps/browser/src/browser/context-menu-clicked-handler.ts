@@ -44,16 +44,18 @@ import {
 export type CopyToClipboardOptions = { text: string; tab: chrome.tabs.Tab };
 export type CopyToClipboardAction = (options: CopyToClipboardOptions) => void;
 
+export type GeneratePasswordToClipboardAction = (tab: chrome.tabs.Tab) => Promise<void>;
+
 const NOT_IMPLEMENTED = (..._args: unknown[]) =>
   Promise.reject<never>("This action is not implemented inside of a service worker context.");
 
 export class ContextMenuClickedHandler {
   constructor(
     private copyToClipboard: CopyToClipboardAction,
+    private generatePasswordToClipboard: GeneratePasswordToClipboardAction,
     private authService: AuthService,
     private cipherService: CipherService,
     private autofillTabCommand: AutofillTabCommand,
-    private generatePasswordToClipboardCommand: GeneratePasswordToClipboardCommand,
     private totpService: TotpService,
     private eventCollectionService: EventCollectionService
   ) {}
@@ -96,15 +98,18 @@ export class ContextMenuClickedHandler {
       },
     };
     searchService = await searchServiceFactory(cachedServices, serviceOptions);
+
+    const generatePasswordToClipboardCommand = new GeneratePasswordToClipboardCommand(
+      await passwordGenerationServiceFactory(cachedServices, serviceOptions),
+      await stateServiceFactory(cachedServices, serviceOptions)
+    );
+
     return new ContextMenuClickedHandler(
       (options) => copyToClipboard(options.tab, options.text),
+      (tab) => generatePasswordToClipboardCommand.generatePasswordToClipboard(tab),
       await authServiceFactory(cachedServices, serviceOptions),
       await cipherServiceFactory(cachedServices, serviceOptions),
       new AutofillTabCommand(await autofillServiceFactory(cachedServices, serviceOptions)),
-      new GeneratePasswordToClipboardCommand(
-        await passwordGenerationServiceFactory(cachedServices, serviceOptions),
-        await stateServiceFactory(cachedServices, serviceOptions)
-      ),
       await totpServiceFactory(cachedServices, serviceOptions),
       await eventCollectionServiceFactory(cachedServices, serviceOptions)
     );
@@ -143,7 +148,7 @@ export class ContextMenuClickedHandler {
         if (!tab) {
           return;
         }
-        await this.generatePasswordToClipboardCommand.generatePasswordToClipboard(tab);
+        await this.generatePasswordToClipboard(tab);
         break;
       case COPY_IDENTIFIER_ID:
         if (!tab) {

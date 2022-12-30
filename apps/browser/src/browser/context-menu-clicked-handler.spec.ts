@@ -9,13 +9,13 @@ import { CipherType } from "@bitwarden/common/enums/cipherType";
 import { Cipher } from "@bitwarden/common/models/domain/cipher";
 import { CipherView } from "@bitwarden/common/models/view/cipher.view";
 
-import { GeneratePasswordToClipboardCommand } from "../clipboard";
 import { AutofillTabCommand } from "../commands/autofill-tab-command";
 
 import {
   CopyToClipboardAction,
   ContextMenuClickedHandler,
   CopyToClipboardOptions,
+  GeneratePasswordToClipboardAction,
 } from "./context-menu-clicked-handler";
 import {
   AUTOFILL_ID,
@@ -58,10 +58,10 @@ describe("ContextMenuClickedHandler", () => {
   };
 
   let copyToClipboard: CopyToClipboardAction;
+  let generatePasswordToClipboard: GeneratePasswordToClipboardAction;
   let authService: MockProxy<AuthService>;
   let cipherService: MockProxy<CipherService>;
   let autofillTabCommand: MockProxy<AutofillTabCommand>;
-  let generatePasswordToClipboardCommand: MockProxy<GeneratePasswordToClipboardCommand>;
   let totpService: MockProxy<TotpService>;
   let eventCollectionService: MockProxy<EventCollectionService>;
 
@@ -69,19 +69,19 @@ describe("ContextMenuClickedHandler", () => {
 
   beforeEach(() => {
     copyToClipboard = jest.fn<void, [CopyToClipboardOptions]>();
+    generatePasswordToClipboard = jest.fn<Promise<void>, [tab: chrome.tabs.Tab]>();
     authService = mock();
     cipherService = mock();
     autofillTabCommand = mock();
-    generatePasswordToClipboardCommand = mock();
     totpService = mock();
     eventCollectionService = mock();
 
     sut = new ContextMenuClickedHandler(
       copyToClipboard,
+      generatePasswordToClipboard,
       authService,
       cipherService,
       autofillTabCommand,
-      generatePasswordToClipboardCommand,
       totpService,
       eventCollectionService
     );
@@ -93,9 +93,9 @@ describe("ContextMenuClickedHandler", () => {
     it("can generate password", async () => {
       await sut.run(createData(GENERATE_PASSWORD_ID), { id: 5 } as any);
 
-      expect(generatePasswordToClipboardCommand.generatePasswordToClipboard).toBeCalledTimes(1);
+      expect(generatePasswordToClipboard).toBeCalledTimes(1);
 
-      expect(generatePasswordToClipboardCommand.generatePasswordToClipboard).toBeCalledWith({
+      expect(generatePasswordToClipboard).toBeCalledWith({
         id: 5,
       });
     });
