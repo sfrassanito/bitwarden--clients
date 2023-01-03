@@ -47,7 +47,11 @@ export class UpdateBadge {
     activeInfo: chrome.tabs.TabActiveInfo,
     serviceCache: Record<string, unknown>
   ) {
-    await new UpdateBadge(self).run({ tabId: activeInfo.tabId, existingServices: serviceCache });
+    await new UpdateBadge(self).run({
+      tabId: activeInfo.tabId,
+      existingServices: serviceCache,
+      windowId: activeInfo.windowId,
+    });
   }
 
   static async tabsOnReplacedListener(
@@ -64,7 +68,11 @@ export class UpdateBadge {
     tab: chrome.tabs.Tab,
     serviceCache: Record<string, unknown>
   ) {
-    await new UpdateBadge(self).run({ tabId, existingServices: serviceCache });
+    await new UpdateBadge(self).run({
+      tabId,
+      existingServices: serviceCache,
+      windowId: tab.windowId,
+    });
   }
 
   static async messageListener(
@@ -93,41 +101,50 @@ export class UpdateBadge {
 
     const authStatus = await this.authService.getAuthStatus();
 
-    const tab = await this.getTab(opts?.tabId, opts?.windowId);
-    const windowId = tab?.windowId;
-
     await this.setBadgeBackgroundColor();
 
     switch (authStatus) {
       case AuthenticationStatus.LoggedOut: {
-        await this.setLoggedOut({ tab, windowId });
+        await this.setLoggedOut();
         break;
       }
       case AuthenticationStatus.Locked: {
-        await this.setLocked({ tab, windowId });
+        await this.setLocked();
         break;
       }
       case AuthenticationStatus.Unlocked: {
-        await this.setUnlocked({ tab, windowId });
+        const tab = await this.getTab(opts?.tabId, opts?.windowId);
+        await this.setUnlocked({ tab, windowId: tab?.windowId });
         break;
       }
     }
   }
 
-  async setLoggedOut(opts: BadgeOptions): Promise<void> {
-    await this.setBadgeIcon("_gray", opts?.windowId);
-    await this.setBadgeText("", opts?.tab?.id);
+  async setLoggedOut(): Promise<void> {
+    await this.setBadgeIcon("_gray");
+    await this.clearBadgeText();
   }
 
-  async setLocked(opts: BadgeOptions) {
-    await this.setBadgeIcon("_locked", opts?.windowId);
-    await this.setBadgeText("", opts?.tab?.id);
+  async setLocked() {
+    await this.setBadgeIcon("_locked");
+    await this.clearBadgeText();
+  }
+
+  private async clearBadgeText() {
+    const tabs = await BrowserApi.getActiveTabs();
+    if (tabs != null) {
+      tabs.forEach(async (tab) => {
+        if (tab.id != null) {
+          await this.setBadgeText("", tab.id);
+        }
+      });
+    }
   }
 
   async setUnlocked(opts: BadgeOptions) {
     await this.initServices();
 
-    await this.setBadgeIcon("", opts?.windowId);
+    await this.setBadgeIcon("");
 
     const disableBadgeCounter = await this.stateService.getDisableBadgeCounter();
     if (disableBadgeCounter) {
@@ -163,7 +180,7 @@ export class UpdateBadge {
         38: "/images/icon38" + iconSuffix + ".png",
       },
     };
-    if (BrowserPlatformUtilsService.isFirefox()) {
+    if (windowId && BrowserPlatformUtilsService.isFirefox()) {
       options.windowId = windowId;
     }
 
@@ -214,7 +231,9 @@ export class UpdateBadge {
   private async getTab(tabId?: number, windowId?: number) {
     return (
       (await BrowserApi.getTab(tabId)) ??
-      (await BrowserApi.tabsQueryFirst({ active: true, windowId })) ??
+      (windowId
+        ? await BrowserApi.tabsQueryFirst({ active: true, windowId })
+        : await BrowserApi.tabsQueryFirst({ active: true, currentWindow: true })) ??
       (await BrowserApi.tabsQueryFirst({ active: true, lastFocusedWindow: true })) ??
       (await BrowserApi.tabsQueryFirst({ active: true }))
     );
