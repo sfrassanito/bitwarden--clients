@@ -26,7 +26,7 @@ const hoverStyles: Record<BadgeTypes, string[]> = {
 export class BadgeDirective {
   @HostBinding("class") get classList() {
     return [
-      "tw-inline",
+      "tw-inline-block",
       "tw-py-0.5",
       "tw-px-1.5",
       "tw-font-bold",
