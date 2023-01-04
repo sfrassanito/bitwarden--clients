@@ -219,6 +219,12 @@ export class AddEditComponent implements OnInit, OnDestroy {
           );
           await this.copyLinkToClipboard(this.link);
         }
+      } else {
+        this.platformUtilsService.showToast(
+          "success",
+          null,
+          this.i18nService.t(this.editMode ? "editedSend" : "createdSend")
+        );
       }
     });
     try {
